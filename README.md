@@ -1,9 +1,13 @@
 # vagrant-k3s
-vagrant script provision k3s on virtualbox
+script vagrant provision k3s on virtualbox
 
 
-## vagrant command
-: vagrant up 
-: vagrant halt
-: vagrant ssh {server_name}
-: vagrant destroy -f & rm -rf .vagrant*
+#### vagrant command
+```
+$ vagrant up 
+$ vagrant halt
+$ vagrant ssh {server_name}
+
+delete and remove
+$ vagrant destroy -f & rm -rf .vagrant*
+```
