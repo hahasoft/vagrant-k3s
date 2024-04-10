@@ -52,7 +52,7 @@ Vagrant.configure("2") do |config|
     end
     server.vm.provision "shell", inline: server_script
     #server.vm.provision "shell", path: "server-install.sh"
-    #server.vm.provision "file", source: "server-install.sh", destination: "/tmp/server-install.sh"
+    server.vm.provision "file", source: "server-install.sh", destination: "/tmp/server-install.sh"
   end
 
   agents.each do |agent_name, agent_ip|
