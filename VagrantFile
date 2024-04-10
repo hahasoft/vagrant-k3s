@@ -1,0 +1,72 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+server_ip = "192.168.56.10"
+
+agents = { "agent1" => "192.168.56.11",
+           "agent2" => "192.168.56.12" }
+
+# Extra parameters in INSTALL_K3S_EXEC variable because of
+# K3s picking up the wrong interface when starting server and agent
+# https://github.com/alexellis/k3sup/issues/306
+
+server_script = <<-SHELL
+    sudo -i   
+    export TZ=Asia/Bangkok
+    export INSTALL_K3S_EXEC="--bind-address=#{server_ip} --node-external-ip=#{server_ip} --flannel-iface=eth1"
+    apk add curl tzdata
+    cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+    curl -sfL https://get.k3s.io | sh -
+    echo "Sleeping waiting for k3s to start"
+    sleep 20
+    cp /var/lib/rancher/k3s/server/token /vagrant_shared
+    cp /etc/rancher/k3s/k3s.yaml /vagrant_shared
+    cat /etc/rancher/k3s/k3s.yaml
+    rm -rf /var/cache/apk/* 
+    rm -rf /usr/share/zoneinfo
+    SHELL
+
+agent_script = <<-SHELL
+    sudo -i
+    apk add curl tzdata
+    cp /usr/share/zoneinfo/Asia/Bangkok /etc/localtime && echo 'Asia/Bangkok' > /etc/timezone
+    export K3S_TOKEN_FILE=/vagrant_shared/token
+    export K3S_URL=https://#{server_ip}:6443
+    export INSTALL_K3S_EXEC="--flannel-iface=eth1"
+    curl -sfL https://get.k3s.io | sh -
+    rm -rf /var/cache/apk/* 
+    rm -rf /usr/share/zoneinfo
+    SHELL
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/alpine314"
+
+  config.vm.define "server", primary: true do |server|
+    server.vm.network "private_network", ip: server_ip
+    server.vm.synced_folder "./shared", "/vagrant_shared"
+    server.vm.hostname = "server"
+    server.vm.provider "virtualbox" do |vb|
+      vb.name = "server"
+      vb.memory = "1024"
+      vb.cpus = "1"
+    end
+    server.vm.provision "shell", inline: server_script
+    #server.vm.provision "shell", path: "server-install.sh"
+    #server.vm.provision "file", source: "server-install.sh", destination: "/tmp/server-install.sh"
+  end
+
+  agents.each do |agent_name, agent_ip|
+    config.vm.define agent_name do |agent|
+      agent.vm.network "private_network", ip: agent_ip
+      agent.vm.synced_folder "./shared", "/vagrant_shared"
+      agent.vm.hostname = agent_name
+      agent.vm.provider "virtualbox" do |vb|
+        vb.name = agent_name
+        vb.memory = "1024"
+        vb.cpus = "1"
+      end
+      agent.vm.provision "shell", inline: agent_script
+    end
+  end
+end
+
