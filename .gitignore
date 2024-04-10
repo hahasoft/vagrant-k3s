@@ -1,0 +1,5 @@
+.vagrant
+.bak
+
+shared/k3s.yaml
+shared/token
